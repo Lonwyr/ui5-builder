@@ -1,4 +1,4 @@
-const {test} = require("ava");
+const test = require("ava");
 const path = require("path");
 const chai = require("chai");
 chai.use(require("chai-fs"));
@@ -165,7 +165,7 @@ test("integration: build application.b standalone", async (t) => {
 	const excludedTasks = ["*"];
 	const includedTasks = ["generateStandaloneAppBundle"];
 
-	return t.notThrows(builder.build({
+	return t.notThrowsAsync(builder.build({
 		tree: applicationBTree,
 		destPath,
 		excludedTasks,
@@ -219,7 +219,7 @@ const applicationBTree = {
 		{
 			"id": "library.d",
 			"version": "1.0.0",
-			"path": path.join(applicationBPath, "node_modules", "library.d"),
+			"path": path.join(applicationBPath, "..", "library.d"),
 			"dependencies": [],
 			"_level": 1,
 			"specVersion": "0.1",
@@ -244,7 +244,7 @@ const applicationBTree = {
 		{
 			"id": "library.a",
 			"version": "1.0.0",
-			"path": path.join(applicationBPath, "node_modules", "collection", "library.a"),
+			"path": path.join(applicationBPath, "..", "collection", "library.a"),
 			"dependencies": [],
 			"_level": 1,
 			"specVersion": "0.1",
@@ -269,7 +269,7 @@ const applicationBTree = {
 		{
 			"id": "library.b",
 			"version": "1.0.0",
-			"path": path.join(applicationBPath, "node_modules", "collection", "library.b"),
+			"path": path.join(applicationBPath, "..", "collection", "library.b"),
 			"dependencies": [],
 			"_level": 1,
 			"specVersion": "0.1",
@@ -294,7 +294,7 @@ const applicationBTree = {
 		{
 			"id": "library.c",
 			"version": "1.0.0",
-			"path": path.join(applicationBPath, "node_modules", "collection", "library.c"),
+			"path": path.join(applicationBPath, "..", "collection", "library.c"),
 			"dependencies": [],
 			"_level": 1,
 			"specVersion": "0.1",
@@ -329,7 +329,8 @@ const applicationBTree = {
 		"configuration": {
 			"paths": {
 				"webapp": "webapp"
-			}
+			},
+			"propertiesFileSourceEncoding": "ISO-8859-1"
 		},
 		"pathMappings": {
 			"/": "webapp"

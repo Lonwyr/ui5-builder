@@ -1,4 +1,4 @@
-const {test} = require("ava");
+const test = require("ava");
 const path = require("path");
 const chai = require("chai");
 chai.use(require("chai-fs"));
@@ -6,12 +6,15 @@ const fs = require("graceful-fs");
 const {promisify} = require("util");
 const readFile = promisify(fs.readFile);
 const assert = chai.assert;
+const sinon = require("sinon");
+const mock = require("mock-require");
 
 const ui5Builder = require("../../../");
 const builder = ui5Builder.builder;
 const applicationAPath = path.join(__dirname, "..", "..", "fixtures", "application.a");
 const applicationGPath = path.join(__dirname, "..", "..", "fixtures", "application.g");
 const applicationHPath = path.join(__dirname, "..", "..", "fixtures", "application.h");
+const applicationIPath = path.join(__dirname, "..", "..", "fixtures", "application.i");
 const libraryDPath = path.join(__dirname, "..", "..", "fixtures", "library.d");
 const libraryEPath = path.join(__dirname, "..", "..", "fixtures", "library.e");
 const libraryHPath = path.join(__dirname, "..", "..", "fixtures", "library.h");
@@ -70,6 +73,10 @@ async function checkFileContentsIgnoreLineFeeds(expectedFiles, expectedPath, des
 	}
 }
 
+test.afterEach.always((t) => {
+	sinon.restore();
+});
+
 test("Build application.a", (t) => {
 	const destPath = "./test/tmp/build/application.a/dest";
 	const expectedPath = path.join("test", "expected", "build", "application.a", "dest");
@@ -90,6 +97,17 @@ test("Build application.a", (t) => {
 	});
 });
 
+
+test("Build application.a with error", async (t) => {
+	const destPath = "./test/tmp/build/application.a/dest";
+
+	const error = await t.throwsAsync(builder.build({
+		tree: applicationATreeBadType,
+		destPath
+	}));
+	t.deepEqual(error.message, `Unknown type 'non existent'`);
+});
+
 test("Build application.a [dev mode]", (t) => {
 	const destPath = "./test/tmp/build/application.a/dest-dev";
 	const expectedPath = path.join("test", "expected", "build", "application.a", "dest-dev");
@@ -104,6 +122,34 @@ test("Build application.a [dev mode]", (t) => {
 		// Check for all directories and files
 		assert.directoryDeepEqual(destPath, expectedPath);
 
+		// Check for all file contents
+		return checkFileContentsIgnoreLineFeeds(expectedFiles, expectedPath, destPath);
+	}).then(() => {
+		t.pass();
+	});
+});
+
+test("Build application.a and clean target path [dev mode]", (t) => {
+	const destPath = "./test/tmp/build/application.a/dest-clean";
+	const destPathRubbishSubFolder = destPath + "/rubbish-should-be-deleted";
+	const expectedPath = path.join("test", "expected", "build", "application.a", "dest-dev");
+
+	return builder.build({
+		tree: applicationATree,
+		destPath: destPathRubbishSubFolder,
+		dev: true
+	}).then(() => {
+		return builder.build({
+			tree: applicationATree,
+			destPath,
+			cleanDest: true,
+			dev: true
+		});
+	}).then(() => {
+		return findFiles(expectedPath);
+	}).then((expectedFiles) => {
+		// Check for all directories and files
+		assert.directoryDeepEqual(destPath, expectedPath);
 		// Check for all file contents
 		return checkFileContentsIgnoreLineFeeds(expectedFiles, expectedPath, destPath);
 	}).then(() => {
@@ -151,6 +197,27 @@ test("Build application.g with component preload paths", (t) => {
 	});
 });
 
+test("Build application.g with excludes", (t) => {
+	const destPath = "./test/tmp/build/application.g/excludes";
+	const expectedPath = path.join("test", "expected", "build", "application.g", "excludes");
+
+	return builder.build({
+		tree: applicationGTreeWithExcludes,
+		destPath,
+		includeTasks: ["createDebugFiles"],
+		excludedTasks: ["*"]
+	}).then(() => {
+		return findFiles(expectedPath);
+	}).then((expectedFiles) => {
+		// Check for all directories and files
+		assert.directoryDeepEqual(destPath, expectedPath);
+		// Check for all file contents
+		return checkFileContentsIgnoreLineFeeds(expectedFiles, expectedPath, destPath);
+	}).then(() => {
+		t.pass();
+	});
+});
+
 test("Build application.h", (t) => {
 	const destPath = "./test/tmp/build/application.h/dest";
 	const expectedPath = path.join("test", "expected", "build", "application.h", "dest");
@@ -158,7 +225,28 @@ test("Build application.h", (t) => {
 	return builder.build({
 		tree: applicationHTree,
 		destPath,
-		excludedTasks: ["createDebugFiles", "generateComponentPreload", "generateStandaloneAppBundle", "generateVersionInfo"]
+		excludedTasks: ["createDebugFiles", "generateComponentPreload",
+			"generateStandaloneAppBundle", "generateVersionInfo"]
+	}).then(() => {
+		return findFiles(expectedPath);
+	}).then((expectedFiles) => {
+		// Check for all directories and files
+		assert.directoryDeepEqual(destPath, expectedPath);
+		// Check for all file contents
+		return checkFileContentsIgnoreLineFeeds(expectedFiles, expectedPath, destPath);
+	}).then(() => {
+		t.pass();
+	});
+});
+
+test("Build application.i", (t) => {
+	const destPath = "./test/tmp/build/application.i/dest";
+	const expectedPath = path.join("test", "expected", "build", "application.i", "dest");
+
+	return builder.build({
+		tree: applicationITree,
+		destPath,
+		excludedTasks: ["createDebugFiles", "generateStandaloneAppBundle", "generateVersionInfo"]
 	}).then(() => {
 		return findFiles(expectedPath);
 	}).then((expectedFiles) => {
@@ -299,6 +387,60 @@ test("Build theme.j even without an library", (t) => {
 	});
 });
 
+test.serial("Cleanup", async (t) => {
+	const BuildContext = require("../../../lib/builder/BuildContext");
+	const projectContext = "project context";
+	const createProjectContextStub = sinon.stub(BuildContext.prototype, "createProjectContext").returns(projectContext);
+	const executeCleanupTasksStub = sinon.stub(BuildContext.prototype, "executeCleanupTasks").returns(projectContext);
+	const applicationType = require("../../../lib/types/application/applicationType");
+	const appBuildStub = sinon.stub(applicationType, "build").resolves();
+
+	const builder = mock.reRequire("../../../lib/builder/builder");
+
+	function getProcessListenerCount() {
+		return ["SIGHUP", "SIGINT", "SIGTERM", "SIGBREAK"].map((eventName) => {
+			return process.listenerCount(eventName);
+		});
+	}
+
+	const listenersBefore = getProcessListenerCount();
+
+	const destPath = "./test/tmp/build/cleanup";
+	// Success case
+	const pBuildSuccess = builder.build({
+		tree: applicationATree,
+		destPath
+	});
+	t.deepEqual(getProcessListenerCount(), listenersBefore.map((x) => x+1),
+		"Per signal, one new listener registered");
+
+	await pBuildSuccess;
+	t.deepEqual(getProcessListenerCount(), listenersBefore, "All signal listeners got deregistered");
+
+	t.deepEqual(appBuildStub.callCount, 1, "Build called once");
+	t.deepEqual(createProjectContextStub.callCount, 1, "One project context got created");
+	const createProjectContextParams = createProjectContextStub.getCall(0).args[0];
+	t.truthy(createProjectContextParams.resources.workspace, "resources.workspace object provided");
+	t.truthy(createProjectContextParams.resources.dependencies, "resources.dependencies object provided");
+	t.deepEqual(Object.keys(createProjectContextParams), ["resources"],
+		"resource parameter (and no others) provided");
+	t.deepEqual(executeCleanupTasksStub.callCount, 1, "Cleanup called once");
+
+	// Error case
+	const pBuildError = builder.build({
+		tree: applicationATreeBadType,
+		destPath
+	});
+	t.deepEqual(getProcessListenerCount(), listenersBefore.map((x) => x+1),
+		"Per signal, one new listener registered");
+
+	const error = await t.throwsAsync(pBuildError);
+	t.deepEqual(error.message, `Unknown type 'non existent'`);
+	t.deepEqual(getProcessListenerCount(), listenersBefore, "All signal listeners got deregistered");
+
+	t.deepEqual(executeCleanupTasksStub.callCount, 2, "Cleanup called twice");
+});
+
 const applicationATree = {
 	"id": "application.a",
 	"version": "1.0.0",
@@ -314,6 +456,7 @@ const applicationATree = {
 			"type": "library",
 			"metadata": {
 				"name": "library.d",
+				"namespace": "library/d",
 				"copyright": "Some fancy copyright"
 			},
 			"resources": {
@@ -339,6 +482,7 @@ const applicationATree = {
 			"type": "library",
 			"metadata": {
 				"name": "library.a",
+				"namespace": "library/a",
 				"copyright": "${copyright}"
 			},
 			"resources": {
@@ -364,6 +508,7 @@ const applicationATree = {
 			"type": "library",
 			"metadata": {
 				"name": "library.b",
+				"namespace": "library/b",
 				"copyright": "${copyright}"
 			},
 			"resources": {
@@ -389,6 +534,7 @@ const applicationATree = {
 			"type": "library",
 			"metadata": {
 				"name": "library.c",
+				"namespace": "library/c",
 				"copyright": "${copyright}"
 			},
 			"resources": {
@@ -415,7 +561,32 @@ const applicationATree = {
 		"configuration": {
 			"paths": {
 				"webapp": "webapp"
-			}
+			},
+			"propertiesFileSourceEncoding": "ISO-8859-1"
+		},
+		"pathMappings": {
+			"/": "webapp"
+		}
+	}
+};
+
+
+const applicationATreeBadType = {
+	"id": "application.a",
+	"version": "1.0.0",
+	"path": applicationAPath,
+	"_level": 0,
+	"specVersion": "0.1",
+	"type": "non existent",
+	"metadata": {
+		"name": "application.a"
+	},
+	"resources": {
+		"configuration": {
+			"paths": {
+				"webapp": "webapp"
+			},
+			"propertiesFileSourceEncoding": "ISO-8859-1"
 		},
 		"pathMappings": {
 			"/": "webapp"
@@ -440,7 +611,8 @@ const applicationGTree = {
 		"configuration": {
 			"paths": {
 				"webapp": "webapp"
-			}
+			},
+			"propertiesFileSourceEncoding": "ISO-8859-1"
 		},
 		"pathMappings": {
 			"/": "webapp"
@@ -452,6 +624,42 @@ const applicationGTree = {
 				"application/g",
 				"application/g/subcomponentA",
 				"application/g/subcomponentB"
+			]
+		}
+	}
+};
+
+const applicationGTreeWithExcludes = {
+	"id": "application.g",
+	"version": "1.0.0",
+	"path": applicationGPath,
+	"_level": 0,
+	"specVersion": "0.1",
+	"type": "application",
+	"metadata": {
+		"name": "application.g",
+		"namespace": "application/g",
+		"copyright": "Some fancy copyright"
+	},
+	"dependencies": [],
+	"resources": {
+		"configuration": {
+			"paths": {
+				"webapp": "webapp"
+			},
+			"propertiesFileSourceEncoding": "ISO-8859-1"
+		},
+		"pathMappings": {
+			"/": "webapp"
+		}
+	},
+	"builder": {
+		"resources": {
+			"excludes": [
+				"/subcomponentA/**",
+				"!**/manifest.json",
+				"/subcomponentB/**",
+				"/Component.js",
 			]
 		}
 	}
@@ -474,7 +682,8 @@ const applicationGTreeComponentPreloadPaths = {
 		"configuration": {
 			"paths": {
 				"webapp": "webapp"
-			}
+			},
+			"propertiesFileSourceEncoding": "ISO-8859-1"
 		},
 		"pathMappings": {
 			"/": "webapp"
@@ -505,7 +714,8 @@ const applicationHTree = {
 		"configuration": {
 			"paths": {
 				"webapp": "webapp"
-			}
+			},
+			"propertiesFileSourceEncoding": "ISO-8859-1"
 		},
 		"pathMappings": {
 			"/": "webapp"
@@ -549,6 +759,34 @@ const applicationHTree = {
 	}
 };
 
+const applicationITree = {
+	"id": "application.i",
+	"version": "1.0.0",
+	"path": applicationIPath,
+	"_level": 0,
+	"specVersion": "0.1",
+	"type": "application",
+	"metadata": {
+		"name": "application.i",
+		"namespace": "application/i"
+	},
+	"dependencies": [],
+	"resources": {
+		"configuration": {
+			"paths": {
+				"webapp": "webapp"
+			},
+			"propertiesFileSourceEncoding": "ISO-8859-1"
+		},
+		"pathMappings": {
+			"/": "webapp"
+		}
+	},
+	"builder": {
+		"bundles": []
+	}
+};
+
 const libraryDTree = {
 	"id": "library.d",
 	"version": "1.0.0",
@@ -564,6 +802,7 @@ const libraryDTree = {
 			"type": "library",
 			"metadata": {
 				"name": "sap.ui.core",
+				"namespace": "sap/ui/core",
 				"copyright": "Some fancy copyright"
 			},
 			"resources": {
@@ -583,6 +822,7 @@ const libraryDTree = {
 	"type": "library",
 	"metadata": {
 		"name": "library.d",
+		"namespace": "library/d",
 		"copyright": "Some fancy copyright"
 	},
 	"resources": {
@@ -590,7 +830,8 @@ const libraryDTree = {
 			"paths": {
 				"src": "main/src",
 				"test": "main/test"
-			}
+			},
+			"propertiesFileSourceEncoding": "ISO-8859-1"
 		},
 		"pathMappings": {
 			"/resources/": "main/src",
@@ -614,6 +855,7 @@ const libraryETree = {
 			"type": "library",
 			"metadata": {
 				"name": "sap.ui.core",
+				"namespace": "sap/ui/core",
 				"copyright": "Some fancy copyright"
 			},
 			"resources": {
@@ -633,6 +875,7 @@ const libraryETree = {
 	"type": "library",
 	"metadata": {
 		"name": "library.e",
+		"namespace": "library/e",
 		"copyright": "UI development toolkit for HTML5 (OpenUI5)\n * (c) Copyright 2009-xxx SAP SE or an SAP affiliate company.\n * Licensed under the Apache License, Version 2.0 - see LICENSE.txt."
 	},
 	"resources": {
@@ -640,7 +883,8 @@ const libraryETree = {
 			"paths": {
 				"src": "src",
 				"test": "test"
-			}
+			},
+			"propertiesFileSourceEncoding": "ISO-8859-1"
 		},
 		"pathMappings": {
 			"/resources/": "src",
@@ -664,6 +908,7 @@ const libraryHTree = {
 			"type": "library",
 			"metadata": {
 				"name": "sap.ui.core",
+				"namespace": "sap/ui/core",
 				"copyright": "Some fancy copyright"
 			},
 			"resources": {
@@ -683,6 +928,7 @@ const libraryHTree = {
 	"type": "library",
 	"metadata": {
 		"name": "library.h",
+		"namespace": "library/h",
 		"copyright": "Some fancy copyright"
 	},
 	"resources": {
@@ -690,7 +936,8 @@ const libraryHTree = {
 			"paths": {
 				"src": "main/src",
 				"test": "main/test"
-			}
+			},
+			"propertiesFileSourceEncoding": "ISO-8859-1"
 		},
 		"pathMappings": {
 			"/resources/": "main/src",
@@ -746,6 +993,7 @@ const libraryITree = {
 			"type": "library",
 			"metadata": {
 				"name": "sap.ui.core",
+				"namespace": "sap/ui/core",
 				"copyright": "Some fancy copyright"
 			},
 			"resources": {
@@ -766,6 +1014,7 @@ const libraryITree = {
 	"type": "library",
 	"metadata": {
 		"name": "library.i",
+		"namespace": "library/i",
 		"copyright": "Some fancy copyright"
 	},
 	"resources": {
@@ -773,11 +1022,11 @@ const libraryITree = {
 			"paths": {
 				"src": "main/src",
 				"test": "main/test"
-			}
+			},
+			"propertiesFileSourceEncoding": "ISO-8859-1"
 		},
 		"pathMappings": {
-			"/resources/": "main/src",
-			"/test-resources/": "main/test"
+			"/resources/": "main/src"
 		}
 	}
 };
@@ -792,6 +1041,7 @@ const libraryJTree = {
 	"type": "library",
 	"metadata": {
 		"name": "library.j",
+		"namespace": "library/j",
 		"copyright": "Some fancy copyright"
 	},
 	"resources": {
@@ -816,6 +1066,7 @@ const themeJTree = {
 	"type": "library",
 	"metadata": {
 		"name": "theme.j",
+		"namespace": "theme/j",
 		"copyright": "Some fancy copyright"
 	},
 	"resources": {
@@ -823,11 +1074,11 @@ const themeJTree = {
 			"paths": {
 				"src": "main/src",
 				"test": "main/test"
-			}
+			},
+			"propertiesFileSourceEncoding": "ISO-8859-1"
 		},
 		"pathMappings": {
-			"/resources/": "main/src",
-			"/test-resources/": "main/test"
+			"/resources/": "main/src"
 		}
 	}
 };

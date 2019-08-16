@@ -1,6 +1,6 @@
-const {test} = require("ava");
+const test = require("ava");
 const sinon = require("sinon");
-const uglify = require("uglify-es");
+const terser = require("terser");
 const {pd} = require("pretty-data");
 const BundleResolver = require("../../../../lib/lbt/bundle/Resolver");
 const AutoSplitter = require("../../../../lib/lbt/bundle/AutoSplitter");
@@ -16,7 +16,22 @@ function createMockPool(dependencies) {
 			if (name === "c.js") {
 				info.compressedSize = 512;
 			}
-			return {info, buffer: async () => name.padStart(2048, "*")};
+			return {
+				info,
+				buffer: async () => Buffer.from(name.padStart(2048, "*")),
+				getProject: () => {
+					return {
+						"resources": {
+							"configuration": {
+								"propertiesFileSourceEncoding": "ISO-8859-1"
+							}
+						}
+					};
+				},
+				resource: {
+					getBuffer: async () => Buffer.from(name.padStart(2048, "*"))
+				}
+			};
 		},
 		resources: [{
 			name: "a.js"
@@ -152,7 +167,8 @@ test("_calcMinSize: js resource", async (t) => {
 					size: 333,
 					compressedSize: 333
 				},
-				buffer: async () => "var test = 5;"
+				buffer: async () => "var test = 5;",
+				getProject: () => undefined
 			};
 		}
 	};
@@ -162,7 +178,7 @@ test("_calcMinSize: js resource", async (t) => {
 
 
 test.serial("_calcMinSize: uglify js resource", async (t) => {
-	const stubUglify = sinon.stub(uglify, "minify").returns({code: "123"});
+	const stubTerser = sinon.stub(terser, "minify").returns({code: "123"});
 	const pool = {
 		findResourceWithInfo: function() {
 			return {
@@ -170,33 +186,51 @@ test.serial("_calcMinSize: uglify js resource", async (t) => {
 					size: 333,
 					compressedSize: 333
 				},
-				buffer: async () => "var test = 5;"
+				buffer: async () => "var test = 5;",
+				getProject: () => undefined
 			};
 		}
 	};
 	const autpSplitter = new AutoSplitter(pool);
 	autpSplitter.optimize = true;
 	t.deepEqual(await autpSplitter._calcMinSize("mymodule.js"), 3);
-	stubUglify.restore();
+	stubTerser.restore();
 });
 
 test("_calcMinSize: properties resource", async (t) => {
 	const pool = {
 		findResourceWithInfo: function() {
+			let content = "1234ß";
 			return {
-				buffer: async () => "1234"
+				buffer: async () => Buffer.from(content),
+				resource: {
+					setString: (string) => {
+						content = string;
+					},
+					getBuffer: async () => Buffer.from(content, "latin1")
+				},
+				getProject: () => {
+					return {
+						"resources": {
+							"configuration": {
+								"propertiesFileSourceEncoding": "ISO-8859-1"
+							}
+						}
+					};
+				}
 			};
 		}
 	};
 	const autpSplitter = new AutoSplitter(pool);
-	t.deepEqual(await autpSplitter._calcMinSize("mymodule.properties"), 4);
+	t.deepEqual(await autpSplitter._calcMinSize("mymodule.properties"), 10, "length of 1234\\u00df");
 });
 
 test("_calcMinSize: xml view resource", async (t) => {
 	const pool = {
 		findResourceWithInfo: function() {
 			return {
-				buffer: async () => "12345"
+				buffer: async () => "12345",
+				getProject: () => undefined
 			};
 		}
 	};
@@ -209,7 +243,8 @@ test("_calcMinSize: xml view resource without optimizeXMLViews", async (t) => {
 	const pool = {
 		findResourceWithInfo: function() {
 			return {
-				buffer: async () => "123456"
+				buffer: async () => "123456",
+				getProject: () => undefined
 			};
 		}
 	};
@@ -222,7 +257,8 @@ test.serial("_calcMinSize: optimize xml view resource", async (t) => {
 	const pool = {
 		findResourceWithInfo: function() {
 			return {
-				buffer: async () => "xxx"
+				buffer: async () => "xxx",
+				getProject: () => undefined
 			};
 		}
 	};
@@ -238,7 +274,8 @@ test.serial("_calcMinSize: optimize xml view resource and pre tag", async (t) =>
 	const pool = {
 		findResourceWithInfo: function() {
 			return {
-				buffer: async () => "<xml><pre>asd</pre>"
+				buffer: async () => "<xml><pre>asd</pre>",
+				getProject: () => undefined
 			};
 		}
 	};

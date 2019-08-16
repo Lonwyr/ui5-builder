@@ -2,10 +2,87 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v1.1.0...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v1.4.1...HEAD).
+
+<a name="v1.4.1"></a>
+## [v1.4.1] - 2019-08-14
+### Bug Fixes
+- Adapt to recent extension of estraverse's set of node types ([#310](https://github.com/SAP/ui5-builder/issues/310)) [`9db14e6`](https://github.com/SAP/ui5-builder/commit/9db14e6afc01c686c1187d8eefe327654e6cc3ca)
+
+### Features
+- Switch to Terser for JavaScript minification [`fccb514`](https://github.com/SAP/ui5-builder/commit/fccb5145d05a8509d5b9c47fa4cea4b6299ca91d)
+- **Theme Build:** Add compress option to minify output ([#295](https://github.com/SAP/ui5-builder/issues/295)) [`eea10ba`](https://github.com/SAP/ui5-builder/commit/eea10ba516c36be6aa3cdb2c8be990bc56f14078)
+- **clean build folder:** Allows developers to clean build folder before start building a project [`04eb695`](https://github.com/SAP/ui5-builder/commit/04eb695fd493ce9bd1289933d5494178c1e679d7)
+
+
+<a name="v1.4.0"></a>
+## [v1.4.0] - 2019-07-29
+### Bug Fixes
+- **versionInfo:** Use correct buildTimestamp format [`6d87b3e`](https://github.com/SAP/ui5-builder/commit/6d87b3e10db11a8755b4049ba82732c6ec4f776c)
+
+### Features
+- Properties File Escaping ([#293](https://github.com/SAP/ui5-builder/issues/293)) [`9d213ce`](https://github.com/SAP/ui5-builder/commit/9d213ced942ed7832fbb7b50f9d444f441941f35)
+
+
+<a name="v1.3.3"></a>
+## [v1.3.3] - 2019-07-01
+### Bug Fixes
+- Use consistent RegExp to detect copyright comments ([#275](https://github.com/SAP/ui5-builder/issues/275)) [`bd7aa40`](https://github.com/SAP/ui5-builder/commit/bd7aa409be340216a88ceb2607e85d951c9de58a)
+
+### Dependency Updates
+- Bump globby from 9.2.0 to 10.0.0 [`1ea4a11`](https://github.com/SAP/ui5-builder/commit/1ea4a11e7177602b11049bb42e7c4149a0d55ff2)
+
+
+<a name="v1.3.2"></a>
+## [v1.3.2] - 2019-06-24
+### Bug Fixes
+- **generateManifestBundle:** Only glob files from project namespace [`fc7f659`](https://github.com/SAP/ui5-builder/commit/fc7f659ab45a6828a1ab05a35dbe856a4a2b5f87)
+
+
+<a name="v1.3.1"></a>
+## [v1.3.1] - 2019-06-14
+### Bug Fixes
+- Detect library namespace automatically ([#255](https://github.com/SAP/ui5-builder/issues/255)) [`604d4d3`](https://github.com/SAP/ui5-builder/commit/604d4d36745c9581969c411a0a78e56981948d0e)
+
+
+<a name="v1.3.0"></a>
+## [v1.3.0] - 2019-06-03
+### Features
+- **Builder:** Add excludes option ([#254](https://github.com/SAP/ui5-builder/issues/254)) [`6a7883e`](https://github.com/SAP/ui5-builder/commit/6a7883e9c39220084660993f77c0d4c4c37ec29c)
+
+
+<a name="v1.2.3"></a>
+## [v1.2.3] - 2019-05-15
+### Bug Fixes
+- **JSDoc:** Implement own tmp dir lifecycle [`3f85abf`](https://github.com/SAP/ui5-builder/commit/3f85abfe9bf05e008c43cf6489d26ecb0b7d8ee3)
+
+
+<a name="v1.2.2"></a>
+## [v1.2.2] - 2019-05-08
+### Bug Fixes
+- **package.json:** Fix JSDoc version to 3.5.5 [`873469d`](https://github.com/SAP/ui5-builder/commit/873469d0d9295a7d7d5775f446c170068d086502)
+
+
+<a name="v1.2.1"></a>
+## [v1.2.1] - 2019-05-07
+### Bug Fixes
+- **SmartTemplateAnalyzer:** Detect dependencies from "pages" object [`2d400c2`](https://github.com/SAP/ui5-builder/commit/2d400c2ac0883ad57b4aa894c46a0dd5aecb070a)
+
+
+<a name="v1.2.0"></a>
+## [v1.2.0] - 2019-04-25
+### Features
+- Add option to use hash signatures in cachebuster info file [`a4e8338`](https://github.com/SAP/ui5-builder/commit/a4e83383c7371cdde8573a901fdadd2ab243440e)
+
+
+<a name="v1.1.1"></a>
+## [v1.1.1] - 2019-04-24
+### Bug Fixes
+- **ApplicationFormatter:** detect the namespace for Maven placeholders ([#243](https://github.com/SAP/ui5-builder/issues/243)) [`49ecb07`](https://github.com/SAP/ui5-builder/commit/49ecb07f41efdf0778f04b05117e0daae01e8710)
+
 
 <a name="v1.1.0"></a>
-## [v1.1.0] - 2019-01-12
+## [v1.1.0] - 2019-04-12
 ### Features
 - Build the manifest-bundle.zip for applications and libraries [`f53aeea`](https://github.com/SAP/ui5-builder/commit/f53aeea594071616974d0e14b6d41609603bbd5b)
 - Generate the AppCacheBuster index file for apps [`dd653c8`](https://github.com/SAP/ui5-builder/commit/dd653c8f3883da41f5723093d7e40aeb3258c180)
@@ -155,6 +232,17 @@ to load the custom bundle file instead.
 - Add ability to configure component preloads and custom bundles [`2241e5f`](https://github.com/SAP/ui5-builder/commit/2241e5ff98fd95f1f80cc74959655ae7a9c660e7)
 
 
+[v1.4.1]: https://github.com/SAP/ui5-builder/compare/v1.4.0...v1.4.1
+[v1.4.0]: https://github.com/SAP/ui5-builder/compare/v1.3.3...v1.4.0
+[v1.3.3]: https://github.com/SAP/ui5-builder/compare/v1.3.2...v1.3.3
+[v1.3.2]: https://github.com/SAP/ui5-builder/compare/v1.3.1...v1.3.2
+[v1.3.1]: https://github.com/SAP/ui5-builder/compare/v1.3.0...v1.3.1
+[v1.3.0]: https://github.com/SAP/ui5-builder/compare/v1.2.3...v1.3.0
+[v1.2.3]: https://github.com/SAP/ui5-builder/compare/v1.2.2...v1.2.3
+[v1.2.2]: https://github.com/SAP/ui5-builder/compare/v1.2.1...v1.2.2
+[v1.2.1]: https://github.com/SAP/ui5-builder/compare/v1.2.0...v1.2.1
+[v1.2.0]: https://github.com/SAP/ui5-builder/compare/v1.1.1...v1.2.0
+[v1.1.1]: https://github.com/SAP/ui5-builder/compare/v1.1.0...v1.1.1
 [v1.1.0]: https://github.com/SAP/ui5-builder/compare/v1.0.5...v1.1.0
 [v1.0.5]: https://github.com/SAP/ui5-builder/compare/v1.0.4...v1.0.5
 [v1.0.4]: https://github.com/SAP/ui5-builder/compare/v1.0.3...v1.0.4
