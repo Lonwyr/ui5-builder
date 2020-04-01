@@ -1,7 +1,6 @@
 const test = require("ava");
 
-const ui5Builder = require("../../../");
-const tasks = ui5Builder.builder.tasks;
+const createDebugFiles = require("../../../lib/tasks/createDebugFiles");
 const ui5Fs = require("@ui5/fs");
 const resourceFactory = ui5Fs.resourceFactory;
 
@@ -17,7 +16,7 @@ test("integration: test.js: dbg file creation", (t) => {
 	});
 
 	return sourceAdapter.write(resource).then(() => {
-		return tasks.createDebugFiles({
+		return createDebugFiles({
 			workspace: sourceAdapter,
 			options: {
 				pattern: "/**/*.js"
@@ -48,7 +47,7 @@ test("integration: test.view.js: dbg file creation", (t) => {
 	});
 
 	return sourceAdapter.write(resource).then(() => {
-		return tasks.createDebugFiles({
+		return createDebugFiles({
 			workspace: sourceAdapter,
 			options: {
 				pattern: "/**/*.js"
@@ -79,7 +78,7 @@ test("integration: test.controller.js: dbg file creation", (t) => {
 	});
 
 	return sourceAdapter.write(resource).then(() => {
-		return tasks.createDebugFiles({
+		return createDebugFiles({
 			workspace: sourceAdapter,
 			options: {
 				pattern: "/**/*.js"
@@ -88,6 +87,37 @@ test("integration: test.controller.js: dbg file creation", (t) => {
 			return sourceAdapter.byPath("/test-dbg.controller.js").then((resource) => {
 				if (!resource) {
 					t.fail("Could not find /test-dbg.controller.js in target");
+				} else {
+					return resource.getBuffer();
+				}
+			});
+		}).then((buffer) => {
+			t.deepEqual(buffer.toString(), content, "Correct content");
+		});
+	});
+});
+
+test("integration: test.designtime.js: dbg file creation", (t) => {
+	const sourceAdapter = resourceFactory.createAdapter({
+		virBasePath: "/"
+	});
+	const content = "sap.ui.define([],function(){return {};});";
+
+	const resource = resourceFactory.createResource({
+		path: "/test.designtime.js",
+		string: content
+	});
+
+	return sourceAdapter.write(resource).then(() => {
+		return createDebugFiles({
+			workspace: sourceAdapter,
+			options: {
+				pattern: "/**/*.js"
+			}
+		}).then(() => {
+			return sourceAdapter.byPath("/test-dbg.designtime.js").then((resource) => {
+				if (!resource) {
+					t.fail("Could not find /test-dbg.designtime.js in target");
 				} else {
 					return resource.getBuffer();
 				}
@@ -110,7 +140,7 @@ test("integration: test.fragment.js: dbg file creation", (t) => {
 	});
 
 	return sourceAdapter.write(resource).then(() => {
-		return tasks.createDebugFiles({
+		return createDebugFiles({
 			workspace: sourceAdapter,
 			options: {
 				pattern: "/**/*.js"
@@ -119,6 +149,37 @@ test("integration: test.fragment.js: dbg file creation", (t) => {
 			return sourceAdapter.byPath("/test-dbg.fragment.js").then((resource) => {
 				if (!resource) {
 					t.fail("Could not find /test-dbg.fragment.js in target locator");
+				} else {
+					return resource.getBuffer();
+				}
+			});
+		}).then((buffer) => {
+			t.deepEqual(buffer.toString(), content, "Correct content");
+		});
+	});
+});
+
+test("integration: test.support.js: dbg file creation", (t) => {
+	const sourceAdapter = resourceFactory.createAdapter({
+		virBasePath: "/"
+	});
+	const content = "sap.ui.define([],function(){return {};});";
+
+	const resource = resourceFactory.createResource({
+		path: "/test.support.js",
+		string: content
+	});
+
+	return sourceAdapter.write(resource).then(() => {
+		return createDebugFiles({
+			workspace: sourceAdapter,
+			options: {
+				pattern: "/**/*.js"
+			}
+		}).then(() => {
+			return sourceAdapter.byPath("/test-dbg.support.js").then((resource) => {
+				if (!resource) {
+					t.fail("Could not find /test-dbg.support.js in target");
 				} else {
 					return resource.getBuffer();
 				}
@@ -141,7 +202,7 @@ test("integration: test-dbg.js: dbg-dbg file creation", (t) => {
 	});
 
 	return sourceAdapter.write(resource).then(() => {
-		return tasks.createDebugFiles({
+		return createDebugFiles({
 			workspace: sourceAdapter,
 			options: {
 				pattern: "/**/*.js"
@@ -172,7 +233,7 @@ test("integration: test.xml: *no* dbg file creation", (t) => {
 	});
 
 	return sourceAdapter.write(resource).then(() => {
-		return tasks.createDebugFiles({
+		return createDebugFiles({
 			workspace: sourceAdapter,
 			options: {
 				pattern: "/**/*.js"
@@ -209,7 +270,7 @@ test("integration: test1.js, test2.js: dbg file creation", (t) => {
 	return Promise.all(resources.map((resource) => {
 		return sourceAdapter.write(resource);
 	})).then(() => {
-		return tasks.createDebugFiles({
+		return createDebugFiles({
 			workspace: sourceAdapter,
 			options: {
 				pattern: "/**/*.js"
@@ -258,7 +319,7 @@ test("integration: dbg file creation should not overwrite the existing -dbg file
 		sourceAdapter.write(resource),
 		workspace.write(debugResource)
 	]).then(() => {
-		return tasks.createDebugFiles({
+		return createDebugFiles({
 			workspace,
 			options: {
 				pattern: "/**/*.js"

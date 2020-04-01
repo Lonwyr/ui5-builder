@@ -97,11 +97,12 @@ const applicationGTree = {
 	"dependencies": [],
 	"builder": {},
 	"_level": 0,
+	"_isRoot": true,
 	"specVersion": "0.1",
 	"type": "application",
 	"metadata": {
 		"name": "application.g",
-		"namespace": "application.g",
+		"namespace": "application/g",
 		"copyright": "Some fancy copyright"
 	},
 	"resources": {
@@ -127,11 +128,12 @@ const applicationGTreeWithCachebusterHash = {
 		}
 	},
 	"_level": 0,
+	"_isRoot": true,
 	"specVersion": "0.1",
 	"type": "application",
 	"metadata": {
 		"name": "application.g",
-		"namespace": "application.g",
+		"namespace": "application/g",
 		"copyright": "Some fancy copyright"
 	},
 	"resources": {
